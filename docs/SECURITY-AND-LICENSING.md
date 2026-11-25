@@ -13,7 +13,7 @@ Scope: static review of the source archive and public repository files. This is 
 | Pocket TTS code | MIT identified upstream | Preserve notices if redistributing covered code |
 | Pocket TTS runtime/model | Verify separately | Do not assume the code licence covers every runtime/model artifact |
 | audio.cpp code | Apache-2.0 identified upstream | Preserve applicable notices and licence text |
-| Sopro model weights | Exact revision terms must be confirmed | Check exact model card, licence and bundled components |
+| Sopro V2 Turbo model | Apache-2.0 is declared in the current Hugging Face model card | Pin the exact model revision and verify the files served to the installer |
 | Download integrity | Needs improvement | Installer follows mutable latest/main references and has no SHA-256 verification |
 | Secrets | No obvious hardcoded token pattern in reviewed text | Static scan is limited; Pocket backend reads a local HF token file |
 | Windows validation | Pending | No clean native build or end-to-end engine test is claimed here |
@@ -41,7 +41,7 @@ MIT notice: https://github.com/kyutai-labs/pocket-tts/blob/main/LICENSE
 
 The audio.cpp upstream project identifies its code as Apache-2.0. The framework licence does not automatically cover model weights: upstream documentation says model weights retain the terms of their original release.
 
-The current setup script obtains a Windows CPU archive from the latest GitHub release, a model specification from the default branch and model files from the Hugging Face main revision. These references are mutable.
+The current Hugging Face model card for `samuel-vitorino/sopro-v2-turbo` declares Apache-2.0 and describes English, European Portuguese, French and German support. The model card also states that current artifacts require `sopro>=2.2.0` or `@soprotts/onnx-web>=0.3.0`. The current Vocloning setup script instead obtains a Windows CPU archive from the latest audio.cpp release, a model specification from the default branch and model files from the Hugging Face main revision. Compatibility between that CLI build and the current model snapshot must therefore be tested rather than assumed. These references are mutable.
 
 Before production packaging:
 1. Select and record an exact audio.cpp release/tag and commit.
@@ -51,6 +51,7 @@ Before production packaging:
 5. Validate hashes before extraction or use.
 6. Preserve third-party notices in installer and release archive.
 
+Sopro model card: https://huggingface.co/samuel-vitorino/sopro-v2-turbo  
 Upstream: https://github.com/0xShug0/audio.cpp  
 Model licence guidance: https://github.com/0xShug0/audio.cpp/blob/main/docs/model_licenses.md  
 Sopro model: https://huggingface.co/samuel-vitorino/sopro-v2-turbo
