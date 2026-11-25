@@ -1,0 +1,49 @@
+name: Windows x64 build
+
+on:
+  push:
+    branches:
+      - main
+      - release/0.2.9.25-prep
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: MSVC 2022 - JUCE 9.0.6 - x64
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Checkout JUCE 9.0.6
+        shell: pwsh
+        run: |
+          git clone --depth 1 --branch 9.0.6 https://github.com/juce-framework/JUCE.git third_party/JUCE
+          if ($LASTEXITCODE -ne 0) { throw 'Failed to fetch JUCE 9.0.6' }
+      - name: Configure
+        shell: pwsh
+        run: |
+          cmake -S . -B build -G 'Visual Studio 17 2022' -A x64 -DJUCE_DIR="$env:GITHUB_WORKSPACE\third_party\JUCE"
+          if ($LASTEXITCODE -ne 0) { throw 'CMake configure failed' }
+      - name: Build Release
+        shell: pwsh
+        run: |
+          cmake --build build --config Release --parallel 2
+          if ($LASTEXITCODE -ne 0) { throw 'MSVC Release build failed' }
+      - name: Upload executable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VocloningNative-windows-x64-${{ github.sha }}
+          path: build/VocloningNative_artefacts/Release/Vocloning.exe
+          if-no-files-found: error
+          retention-days: 14
