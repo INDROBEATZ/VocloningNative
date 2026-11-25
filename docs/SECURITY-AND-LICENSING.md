@@ -1,92 +1,57 @@
-# Security and third-party licensing review
+# Security and Third-Party Licensing
 
-Review date: 2026-11-25  
-Baseline: Vocloning Native 0.2.9.24 HOTFIX  
-Scope: static review of the source archive and public repository files. This is not a penetration test, legal opinion or complete software bill of materials.
+## Scope
 
-## Executive status
+This is an engineering checklist for the Vocloning Native source repository and its external speech-engine dependencies. It is not legal advice or a complete software bill of materials.
 
-| Area | Status | Notes |
-|---|---|---|
-| Vocloning Native source licence | Decision required | No LICENSE file; public visibility does not grant reuse rights |
-| JUCE 9.0.6 | EULA and licence tier must be checked | JUCE 9 is governed by JUCE's own licence framework |
-| Pocket TTS code | MIT identified upstream | Preserve notices if redistributing covered code |
-| Pocket TTS runtime/model | Verify separately | Do not assume the code licence covers every runtime/model artifact |
-| audio.cpp code | Apache-2.0 identified upstream | Preserve applicable notices and licence text |
-| Sopro V2 Turbo model | Apache-2.0 is declared in the current Hugging Face model card | Pin the exact model revision and verify the files served to the installer |
-| Download integrity | Needs improvement | Installer follows mutable latest/main references and has no SHA-256 verification |
-| Secrets | No obvious hardcoded token pattern in reviewed text | Static scan is limited; Pocket backend reads a local HF token file |
-| Windows validation | Pending | No clean native build or end-to-end engine test is claimed here |
+## Project source licence
 
-## Project-owned source
+No licence has been selected for the Vocloning Native application source. Do not add an MIT, Apache-2.0 or other licence without the copyright holder's explicit decision. A public GitHub repository does not automatically grant general permission to reuse, modify or redistribute the project source.
 
-No licence has been selected for Vocloning Native. Do not add MIT, Apache-2.0 or another licence without an explicit decision by the copyright holder. Until a licence is added, the public repository is viewable but downstream users do not receive a general licence to reuse, modify or redistribute the source.
+## JUCE
 
-## JUCE 9.0.6
-
-JUCE 9 is governed by JUCE's own licence framework and EULA, not a blanket permissive open-source grant. The official JUCE 9 EULA lists Starter, Indie, Pro and Educational licence types, revenue/funding thresholds and developer-seat/product-distribution obligations.
-
-Before distributing a product built with JUCE 9.0.6, confirm the applicable licence tier for the project owner and each developer, the permitted use case, and continuing distribution/maintenance rights. Do not redistribute JUCE source or modules separately from what the EULA permits.
+JUCE 9.0.6 has its own licence framework and EULA. Confirm the correct licence tier and product-distribution rights for the project before distributing binaries.
 
 Official terms: https://juce.com/legal/juce-9-licence/
 
 ## Pocket TTS
 
-The upstream Pocket TTS repository contains an MIT licence for project code. If Pocket TTS code is copied or redistributed, retain its copyright and permission notice. This application currently integrates an external standalone runtime and does not commit its executable. Review runtime packaging and model weights independently; do not infer their terms solely from the code repository licence.
+The upstream Pocket TTS code repository includes an MIT licence. Preserve the applicable copyright and permission notices if redistributing covered code. Review the exact runtime and model terms separately; do not assume the code licence automatically covers every model or binary.
 
-Upstream: https://github.com/kyutai-labs/pocket-tts  
-MIT notice: https://github.com/kyutai-labs/pocket-tts/blob/main/LICENSE
+Upstream: https://github.com/kyutai-labs/pocket-tts
 
 ## audio.cpp and Sopro
 
-The audio.cpp upstream project identifies its code as Apache-2.0. The framework licence does not automatically cover model weights: upstream documentation says model weights retain the terms of their original release.
+Review the audio.cpp licence and notices, and the exact Sopro model card/revision and all associated model assets. The licence for framework code does not necessarily determine the licence of weights or third-party artifacts.
 
-The current Hugging Face model card for `samuel-vitorino/sopro-v2-turbo` declares Apache-2.0 and describes English, European Portuguese, French and German support. The model card also states that current artifacts require `sopro>=2.2.0` or `@soprotts/onnx-web>=0.3.0`. The current Vocloning setup script instead obtains a Windows CPU archive from the latest audio.cpp release, a model specification from the default branch and model files from the Hugging Face main revision. Compatibility between that CLI build and the current model snapshot must therefore be tested rather than assumed. These references are mutable.
+Upstream:
+- https://github.com/0xShug0/audio.cpp
+- https://huggingface.co/samuel-vitorino/sopro-v2-turbo
 
-Before production packaging:
-1. Select and record an exact audio.cpp release/tag and commit.
-2. Select an immutable Sopro model repository revision.
-3. Obtain the exact model-card and licence files for that revision and all bundled components.
-4. Record SHA-256 for every downloaded file.
-5. Validate hashes before extraction or use.
-6. Preserve third-party notices in installer and release archive.
+Before a public installer:
+1. Pin an exact runtime release/tag and commit.
+2. Pin an immutable model repository revision.
+3. Record SHA-256 for every downloaded file.
+4. Verify hashes before extraction or execution.
+5. Preserve required third-party notices and licence texts.
+6. Test compatibility between the selected runtime and model snapshot.
 
-Sopro model card: https://huggingface.co/samuel-vitorino/sopro-v2-turbo  
-Upstream: https://github.com/0xShug0/audio.cpp  
-Model licence guidance: https://github.com/0xShug0/audio.cpp/blob/main/docs/model_licenses.md  
-Sopro model: https://huggingface.co/samuel-vitorino/sopro-v2-turbo
+## Credentials and local data
 
-## Credential handling
+- Never commit Hugging Face tokens, API credentials or authentication files.
+- Never include private voice references or generated audio in public commits.
+- Remove personal paths and tokens from diagnostic logs before sharing.
+- Treat voice recordings as sensitive personal data.
+- Review child-process environment handling so credentials are not inherited by unrelated processes.
 
-The Pocket TTS backend checks the local Hugging Face token file and temporarily exposes the token as HF_TOKEN in the parent process environment so the child process can inherit it. The code restores the previous value and serializes launches because the environment variable is process-wide.
+## Installer and downloads
 
-Do not log or display token contents. Do not commit Hugging Face cache files. Avoid concurrent unrelated child processes that might inherit HF_TOKEN. Prefer a per-child environment block if supported by the process API or a small launcher helper.
+Review `scripts/install-sopro.ps1` before executing it. Production distribution should use pinned immutable downloads, SHA-256 validation, clear error handling and least-privilege environment configuration.
 
-## Installer and download chain
+## Responsible voice use
 
-The current scripts/install-sopro.ps1 has the following production risks:
-- Resolves the latest audio.cpp release at install time.
-- Downloads a model specification from a mutable default branch.
-- Downloads model weights from a mutable Hugging Face branch.
-- Checks minimum file sizes but not cryptographic hashes.
-- Writes VOCLONING_SOPRO_ROOT at Machine scope, which can require elevation and affects all users.
+Use only voice recordings you are authorized to process. Do not impersonate people, deceive listeners or distribute another person's voice without permission.
 
-Recommended 0.2.9.25 changes:
-- Pin immutable versions and revisions.
-- Verify SHA-256 before moving partial downloads into final locations.
-- Fail closed on checksum mismatch.
-- Prefer a user-scoped setting or app-relative path unless machine-wide configuration is required.
-- Produce installation logs without secrets.
-- Test cancellation, interrupted downloads, retries, upgrade and uninstall.
+## Reporting a vulnerability
 
-## Static scan
-
-The reviewed text sources did not reveal obvious hardcoded API keys, passwords or access tokens. The scan did identify the deliberate Hugging Face token-file integration described above. This does not prove the absence of secrets in binaries, archives, future commits or generated artifacts.
-
-Before each public release, inspect staged files and the full diff, run a secret scanner, confirm .gitignore excludes runtime binaries/model weights/caches/voice samples/generated WAVs/build outputs, and review release assets separately.
-
-## Release gate
-
-Do not publish a public Windows installer until the project licence decision is recorded, JUCE licence eligibility is confirmed, third-party redistribution rights and notices are confirmed, downloads are pinned and hash-verified, a clean Windows 11 x64 build succeeds, and install/first launch/both engine paths/playback/export/upgrade/uninstall have been tested.
-
-This document is an engineering checklist, not legal advice.
+See `SECURITY.md`. Do not publish exploitable security details or credentials in a public issue.

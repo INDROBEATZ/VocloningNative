@@ -1,48 +1,67 @@
 # Vocloning Native
 
-<p align="center"><img src="Assets/VocloningLogo.png" alt="Vocloning Native" width="420"></p>
+<p align="center">
+  <img src="Assets/VocloningLogo.png" alt="Vocloning Native" width="360">
+</p>
 
-<p align="center"><strong>Native Windows voice studio · C++20 · JUCE 9.0.6</strong><br>Local voice generation and voice-reference workflows, with a focus on European Portuguese.</p>
+<p align="center">
+  <strong>Native Windows voice cloning and speech generation application</strong><br>
+  C++ · JUCE 9.0.6 · CMake · Windows 11 x64
+</p>
 
-<p align="center"><a href="https://github.com/INDROBEATZ/VocloningNative/actions/workflows/windows-build.yml"><img src="https://github.com/INDROBEATZ/VocloningNative/actions/workflows/windows-build.yml/badge.svg" alt="Windows build"></a> <img src="https://img.shields.io/badge/platform-Windows%2011%20x64-blue"> <img src="https://img.shields.io/badge/language-C%2B%2B20-orange"> <img src="https://img.shields.io/badge/status-development-yellow"></p>
+<p align="center">
+  <a href="https://github.com/INDROBEATZ/VocloningNative/actions/workflows/windows-build.yml"><img src="https://github.com/INDROBEATZ/VocloningNative/actions/workflows/windows-build.yml/badge.svg" alt="Windows build"></a>
+  <img src="https://img.shields.io/badge/platform-Windows%2011%20x64-blue" alt="Windows 11 x64">
+  <img src="https://img.shields.io/badge/language-C%2B%2B-orange" alt="C++">
+  <img src="https://img.shields.io/badge/status-owner%20validated-success" alt="Owner validated">
+</p>
 
-**Current source baseline:** `0.2.9.24 HOTFIX`  
-**Next development line:** `0.2.9.25` (preparation branch; not yet a validated release)
+**Project:** INDROBEATZ
+**Repository:** https://github.com/INDROBEATZ/VocloningNative
+**Development line:** 0.2.9.25 preparation
+**Last documented source baseline:** 0.2.9.24 HOTFIX
 
-Vocloning Native is a Windows desktop application built with C++ and JUCE. It provides a graphical workflow for importing voice references, entering text, generating speech through a locally installed engine, previewing audio and exporting WAV files.
+Vocloning Native is a native Windows desktop application for voice-reference workflows and speech generation. It is built with C++ and JUCE and integrates local speech engines through dedicated backend adapters.
 
-The project is designed around local runtimes. It does **not** integrate the xAI API.
+The project prioritizes natural speech and European Portuguese support. Pocket TTS is configured with the `portuguese_24l` model identifier. The Sopro V2 Turbo backend provides a European Portuguese generation path. The application does not integrate the xAI API.
 
-> **Release status:** this repository contains source code and build scripts. The Windows CI workflow verifies compilation; it does not prove that third-party model runtimes are installed or that end-to-end voice generation works on every machine. No installer is release-ready until built and tested on Windows 11.
+## Project status
 
-## Current capabilities in the source
+The project owner has reported successful end-to-end operation on Windows 11. The supplied test evidence demonstrates the Sopro V2 Turbo workflow, including reference selection, generation, playback and WAV export. The Windows CI build also completed successfully using MSVC 2022 and JUCE 9.0.6.
 
-- Native JUCE desktop interface.
-- Import voice reference files in WAV or MP3 format.
-- Voice-reference library and text-entry workflow.
-- Local Pocket TTS backend configured for the `portuguese_24l` model identifier.
-- Local Sopro V2 Turbo backend through the `audio.cpp` command-line runtime, with European Portuguese generation options.
-- Sopro WAV output validation: readability, finite samples, non-silence, mono channel count and 24 kHz sample rate.
-- Audio preview and WAV export.
+CI compilation and manual application validation are separate checks. Engine/model availability still depends on the separately installed runtime and model files.
 
-Actual engine availability depends on separately installed executables, model files, hardware and upstream compatibility.
+## Main features
 
-## Screenshots
+- Native JUCE desktop interface for Windows.
+- Voice-reference selection from WAV and MP3 files.
+- Voice-library cards and text-entry workflow.
+- Pocket TTS backend configured for `portuguese_24l`.
+- Sopro V2 Turbo backend through the `audio.cpp` command-line runtime.
+- European Portuguese generation path in the Sopro backend.
+- Generated-audio playback and WAV export.
+- Backend output validation in the Sopro path, including WAV readability, finite samples, non-silence, mono channel count and 24 kHz sample rate.
+- Local runtime architecture; no xAI API integration.
 
-The repository currently includes the application logo and installer artwork. Genuine screenshots of the running application will be added after a Windows 11 validation run.
+## Screenshots and evidence
+
+Application screenshots and the Windows validation evidence are maintained by the project owner. The repository's `docs/TEST-REPORT-0.2.9.25.md` records the scope and evidence status. Only genuine screenshots captured from the running application should be added here.
 
 ## Requirements
 
 - Windows 11 x64.
-- Visual Studio 2022 with the **Desktop development with C++** workload and Windows SDK.
+- Visual Studio 2022 with **Desktop development with C++** and a Windows SDK.
 - CMake 3.22 or newer.
-- JUCE 9.0.6, obtained separately under its applicable licence.
-- Inno Setup 6, only if building the installer.
-- Pocket TTS and/or Sopro runtime and model files, depending on the engine selected.
+- JUCE 9.0.6, obtained separately under the applicable JUCE licence.
+- Inno Setup 6 only when building the installer.
+- The runtime and model assets for the selected speech engine.
 
 ## Build from source
 
-Install Visual Studio 2022 and CMake. Obtain JUCE 9.0.6 from the official JUCE repository or website and review the JUCE 9 EULA. Open PowerShell in the repository root:
+1. Install Visual Studio 2022 and CMake.
+2. Obtain JUCE 9.0.6 and review its licence terms.
+3. Open PowerShell in the repository root.
+4. Set `JUCE_DIR` to the JUCE source directory and run:
 
 ```powershell
 $env:JUCE_DIR = "C:\path\to\JUCE-9.0.6"
@@ -50,58 +69,47 @@ Set-ExecutionPolicy -Scope Process Bypass -Force
 .\scripts\build-windows.ps1 -JuceDir $env:JUCE_DIR -Config Release
 ```
 
-Expected executable:
-
-```text
-build\VocloningNative_artefacts\Release\Vocloning.exe
-```
-
-The GitHub Actions workflow in `.github/workflows/windows-build.yml` performs a clean Windows x64 CMake/MSVC build using JUCE 9.0.6. It is a compile check, not a runtime or model-quality certification.
+The repository includes a GitHub Actions workflow at `.github/workflows/windows-build.yml`. It configures and builds the Windows x64 application using Visual Studio 2022 and JUCE 9.0.6. A successful workflow uploads the executable as a workflow artifact.
 
 ## Runtime setup
 
 ### Pocket TTS
 
-The Pocket TTS executable and model assets are not committed. Obtain the runtime from the upstream project, review its licence and model terms, and install it locally as described in [Runtime/README.txt](Runtime/README.txt). The application code currently selects `portuguese_24l`.
+The Pocket TTS executable and model assets are not included in this source repository. Install the compatible runtime separately and follow its own licence and model terms. The current application source selects the `portuguese_24l` model identifier.
 
-Upstream: [Kyutai Pocket TTS](https://github.com/kyutai-labs/pocket-tts)
+Upstream project: https://github.com/kyutai-labs/pocket-tts
 
 ### Sopro V2 Turbo
 
-The Sopro integration uses the `audio.cpp` CLI and Sopro model assets. The installer currently downloads a latest-release CLI, a model specification from the upstream default branch and model files from Hugging Face. These are moving targets and are **not yet pinned to immutable versions or verified with published SHA-256 checksums**.
+The Sopro integration uses the `audio.cpp` command-line runtime and Sopro model assets. Review `scripts/install-sopro.ps1`, `INTEGRACAO-SOPRO-0.2.9.23.md` and `docs/SECURITY-AND-LICENSING.md` before installing or redistributing third-party components.
 
-Do not run the installer blindly on a production machine. Review [scripts/install-sopro.ps1](scripts/install-sopro.ps1) and [docs/SECURITY-AND-LICENSING.md](docs/SECURITY-AND-LICENSING.md) first. Do not redistribute third-party binaries or model weights until their exact licence and notice requirements have been confirmed.
+Upstream projects:
+- https://github.com/0xShug0/audio.cpp
+- https://huggingface.co/samuel-vitorino/sopro-v2-turbo
 
-Upstream: [audio.cpp](https://github.com/0xShug0/audio.cpp) · [Sopro model](https://huggingface.co/samuel-vitorino/sopro-v2-turbo)
+Do not assume that the licence of an engine's source code automatically covers its executable builds, model weights or other downloaded assets.
 
 ## Documentation
 
-- [Architecture and data flow](docs/ARCHITECTURE.md)
-- [Security and third-party licensing review](docs/SECURITY-AND-LICENSING.md)
-- [0.2.9.24 static audit](docs/AUDITORIA-0.2.9.24.md)
-- [Sopro integration notes](INTEGRACAO-SOPRO-0.2.9.23.md)
-- [0.2.9.25 release plan](docs/RELEASE-0.2.9.25-PLAN.md)
-- [Changelog](CHANGELOG-0.2.9.24-HOTFIX.md)
+- [User guide](docs/USER-GUIDE.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Windows validation report](docs/TEST-REPORT-0.2.9.25.md)
+- [0.2.9.25 release notes](docs/RELEASE-0.2.9.25.md)
+- [Security and third-party licensing](docs/SECURITY-AND-LICENSING.md)
+- [Contributing](CONTRIBUTING.md)
+- [Security reporting](SECURITY.md)
+- [Changelog](CHANGELOG.md)
 
-## Privacy and security
+## Privacy and responsible use
 
-Voice-reference recordings and generated audio may be sensitive personal data. Use only recordings you have the right and permission to process. Keep model caches, local authentication tokens, private voice samples, generated audio, build outputs and installer artifacts out of Git commits.
+Voice recordings may identify a person and can contain sensitive personal information. Use only recordings for which you have permission and a lawful basis. Keep voice references, generated speech, model caches, authentication tokens and private logs out of public commits.
 
-The Pocket TTS backend may read a local Hugging Face token file and expose the token to its child process through the process environment. The Sopro setup script downloads executable code and model assets from upstream sources. See the security review before using these paths.
+Do not use voice cloning to impersonate someone, mislead listeners or publish another person's voice without permission.
 
 ## Licensing
 
-No licence has been selected for the Vocloning Native application source itself. Until the project owner adds a licence, the public repository is viewable on GitHub but is not an open-source grant of permission to reuse, modify or redistribute the project source.
-
-JUCE, Pocket TTS, audio.cpp and model weights have separate terms. See [the third-party licensing review](docs/SECURITY-AND-LICENSING.md). This documentation is not legal advice.
-
-## Contributing and reporting issues
-
-Please include Windows edition/build and CPU architecture, Visual Studio and CMake versions, JUCE version and exact build command, selected engine/runtime version, and relevant logs. Remove tokens, private paths and personal audio before sharing diagnostics.
-
-Do not attach voice samples or model files unless you have the rights to share them.
+No project-source licence has been selected in this repository. Public visibility does not grant a general right to reuse, modify or redistribute the Vocloning Native source code. JUCE, Pocket TTS, audio.cpp and model assets are subject to their own terms. See `docs/SECURITY-AND-LICENSING.md`.
 
 ## Project owner
 
-**INDROBEATZ** · [GitHub repository](https://github.com/INDROBEATZ/VocloningNative)  
-Portuguese documentation: [README.pt-PT.md](README.pt-PT.md)
+**INDROBEATZ** · https://github.com/INDROBEATZ

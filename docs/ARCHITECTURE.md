@@ -1,83 +1,86 @@
-# Vocloning Native - Architecture
+# Vocloning Native — Technical Architecture
 
-Source baseline: 0.2.9.24 HOTFIX  
-Target: Windows 11 x64  
-Toolchain: C++20, JUCE 9.0.6, CMake and MSVC 2022
+## 1. Overview
 
-This document describes the architecture visible in the current source tree. It does not claim that every runtime path has passed end-to-end testing.
+Vocloning Native is a JUCE desktop application for Windows. The GUI coordinates local voice-reference management and invokes speech engines through backend adapters. Speech inference is performed by external runtime processes rather than being embedded into the GUI executable.
 
-## Components
+```text
+Windows user
+    |
+    v
+JUCE application
+    |
+    +-- MainComponent (UI and workflow coordination)
+    |
+    +-- VoiceLibrary (local reference metadata/files)
+    |
+    +-- PocketTTSBackend
+    |       |
+    |       +-- pocket-tts runtime
+    |       +-- Pocket TTS model assets
+    |
+    +-- SoproTTSBackend
+            |
+            +-- audio.cpp CLI
+            +-- Sopro model/specification
 
-| Component | Source | Responsibility |
-|---|---|---|
-| Application entry point | Source/Main.cpp | JUCE lifecycle, splash screen and main window |
-| Main interface | Source/MainComponent.h/.cpp | Navigation, reference import, text input, engine selection, generation, preview and export |
-| Voice library | Source/VoiceLibrary.h/.cpp | Local reference metadata and reference-file management |
-| Pocket TTS adapter | Source/PocketTTSBackend.h/.cpp | Prepares reference audio and invokes the Pocket TTS CLI |
-| Sopro adapter | Source/SoproTTSBackend.h/.cpp | Invokes audio.cpp with Sopro model/spec paths and validates generated WAV |
-| UTF-8 helper | Source/Utf8.h | Converts UTF-8 literals for JUCE strings |
-| Build | CMakeLists.txt | JUCE modules, resources and compile definitions |
-| Installer | installer/VocloningNative.iss | Inno Setup layout and post-install Sopro bootstrap |
+Generated WAV -> playback -> user-selected export location
+```
 
-## Startup and UI
+## 2. Source layout
 
-1. CMake builds the JUCE GUI target with product name Vocloning.
-2. START_JUCE_APPLICATION enters VocloningApplication.
-3. initialise() creates a splash window and timer.
-4. When the splash animation finishes, the application creates MainWindow.
-5. MainWindow owns a MainComponent instance.
+| Path | Responsibility |
+|---|---|
+| `Source/Main.cpp` | JUCE application lifecycle and main window |
+| `Source/MainComponent.h/.cpp` | Main interface, reference selection, text entry, engine selection, generation, playback and export |
+| `Source/VoiceLibrary.h/.cpp` | Voice-reference library and local metadata/file handling |
+| `Source/PocketTTSBackend.h/.cpp` | Pocket TTS process integration |
+| `Source/SoproTTSBackend.h/.cpp` | Sopro/audio.cpp process integration and generated-WAV validation |
+| `Source/Utf8.h` | UTF-8 helper functions |
+| `CMakeLists.txt` | JUCE modules, application target, resources and Windows build configuration |
+| `scripts/` | Build, runtime setup, diagnostics and packaging scripts |
+| `installer/` | Inno Setup installer definition |
+| `Runtime/` | Runtime documentation; third-party runtime binaries are not committed |
 
-The main component coordinates the voice library, engine selection and generation controls. The source supports WAV/MP3 reference selection and WAV export. Reference recordings and generated audio are local user data and must not be committed.
+## 3. Application lifecycle
 
-## Pocket TTS adapter
+The JUCE application entry point creates the application instance and main window. The main window owns the main component. The main component coordinates the visual workflow and delegates engine-specific operations to the selected backend.
 
-PocketTTSBackend is a process adapter, not an embedded inference engine. It locates the standalone Pocket TTS executable, prepares reference audio and invokes the external process. The current source selects the model identifier portuguese_24l.
+## 4. Voice library and references
 
-The backend has a scoped Hugging Face token helper. If a token exists in the local Hugging Face cache, it temporarily sets HF_TOKEN in the parent process environment so a child process can inherit it, then restores the previous value. Calls are serialized because the environment variable is process-wide.
+Voice references are selected from local WAV/MP3 files. Reference recordings remain user data and should not be committed to the repository. The application presents reference cards and provides the text/generation workflow.
 
-Security improvement for 0.2.9.25: prefer a per-child environment block or isolated launcher instead of mutating the process-wide environment.
+## 5. Pocket TTS backend
 
-## Sopro adapter
+The Pocket TTS adapter locates and invokes the standalone Pocket TTS runtime. The current source selects the `portuguese_24l` model identifier. The runtime and model files are external dependencies and are not included in the public source repository.
 
-SoproTTSBackend locates the audio.cpp CLI, Sopro model directory and model specification. It launches the CLI with the TTS task, Sopro family, CPU backend, thread count, text, voice reference, Portuguese language option and output path.
+The backend contains local Hugging Face token handling. Treat the token as a secret: never print it, commit it or include it in diagnostics. A future hardening pass should prefer a per-child-process environment over temporary process-wide environment mutation.
 
-The backend waits up to 15 minutes, checks the process exit code and validates the generated file. Validation checks readability, finite/non-silent samples and the expected mono/24 kHz format.
+## 6. Sopro backend
 
-The current installer downloads the latest audio.cpp release, a model specification from the upstream default branch and model files from the Hugging Face main revision. These references are mutable. Pin exact versions/revisions and verify SHA-256 before production distribution.
+The Sopro adapter invokes the `audio.cpp` command-line runtime with the selected model/specification and voice reference. The backend checks process completion and validates the generated WAV. The validation includes readability, finite samples, non-silence, mono output and a 24 kHz sample rate.
 
-## Build and packaging
+The runtime and model are external dependencies. Their exact versions and compatibility must be documented and pinned for reproducible distribution.
 
-CMake requires JUCE 9.0.6 through JUCE_DIR, the environment variable or third_party/JUCE. It embeds the application logo, links JUCE GUI/audio modules and compiles the Windows resource file on Windows.
+## 7. Build system
 
-If Runtime/pocket-tts.exe exists at configure time, CMake copies Runtime beside the executable after build. The repository intentionally excludes that runtime binary.
+CMake builds the JUCE application for Windows x64. The supported CI workflow checks out JUCE 9.0.6, configures with the Visual Studio 2022 generator and builds Release. The workflow uploads the executable as an artifact.
 
-The Inno Setup script expects a prepared BuildOutput directory. The packaging script must create the expected layout before compiling the installer. The installer invokes the Sopro setup script after installation, so tests must cover downloads, elevation, cancellation, upgrade and uninstall.
+CI compilation does not replace manual tests of the UI, runtime processes, model loading, audio playback or export.
 
-## Known boundaries
+## 8. Security boundaries
 
-- Both inference engines run as external processes; inference is not linked into the GUI executable.
-- The project does not use the xAI API.
-- CI compilation does not certify model availability, audio quality or end-to-end operation.
-- Runtime/model versions are not yet locked to immutable artifacts.
-- The Sopro installer does not verify cryptographic hashes.
-- Version metadata is duplicated across CMakeLists.txt, Source/Main.cpp and installer/VocloningNative.iss.
-- Clean Windows 11 build and engine-specific functional tests remain required.
+- Voice recordings and generated speech are private user data.
+- Runtime binaries and model weights are third-party assets.
+- Do not commit authentication tokens, model caches, generated WAVs or build outputs.
+- Pin third-party versions and verify SHA-256 before production distribution.
+- Do not claim that the source repository's licence covers JUCE or model assets.
 
-## Data flow
+## 9. Future engineering priorities
 
-User -> JUCE MainComponent -> VoiceLibrary and selected backend
-
-PocketTTSBackend -> pocket-tts.exe -> Pocket TTS model
-
-SoproTTSBackend -> audiocpp_cli.exe -> Sopro model/spec
-
-Generated WAV -> JUCE preview -> user-selected export destination
-
-## 0.2.9.25 priorities
-
-1. Pin runtime/model revisions and verify SHA-256.
-2. Remove process-wide credential environment mutation where possible.
-3. Centralize version metadata.
-4. Ensure diagnostics never include tokens or private voice paths.
-5. Validate import, persistence, synthesis, playback, export and failure recovery on Windows 11.
-6. Confirm JUCE and model/runtime licensing before distributing binaries.
+- Pin runtime releases and model revisions.
+- Verify downloaded files using SHA-256.
+- Prefer per-process credential passing.
+- Centralize application version metadata.
+- Add automated tests for reference import, library persistence, backend failure handling and WAV export.
+- Test installation, upgrade and uninstall on clean Windows 11 systems.
